@@ -1,0 +1,123 @@
+<?php
+ 
+	class Perolehan_Dana extends CI_Controller
+	{
+		
+		function __construct()
+		{
+			parent::__construct();
+			//checkAksesModule();
+			$this->load->helper(array('url'));
+			$this->load->library('ssp');
+			$this->load->model('model_perolehan_dana');
+		}
+
+		function data()
+		{
+
+			// nama table
+			$table      = 'tbl_perolehan_dana';
+			// nama PK
+			$primaryKey = 'id';
+
+
+			//this->db->select('a.*,b.*');
+			//$this->db->from('tbl_sumber_dana a');
+			//$this->db->join('tbl_jenis_dana b', 'b.id_jenis_dana.id = a.id_sumber_dana.id','inner');
+			// $this->db->join('comments', 'comments.id = articles.id','left');
+			 
+			// $query = $this->db->get();
+			// list field yang mau ditampilkan
+			$columns    = array(
+				//tabel db(kolom di database) => dt(nama datatable di view)
+				array('db' => 'sumber_dana', 'dt' => 'sumber_dana'),
+		        array('db' => 'jenis_dana', 'dt' => 'jenis_dana'),
+		        array('db' => 'tahun_anggaran', 'dt' => 'tahun_anggaran'),
+		        array('db' => 'jml_rp', 'dt' => 'jml_rp'),
+		        //untuk menampilkan aksi(edit/delete dengan parameter id)
+		        array(
+		              'db' => 'id',
+		              'dt' => 'aksi',
+		              'formatter' => function($d) {
+		               		return anchor('perolehan_dana/edit/'.$d, '<i class="fa fa-edit"></i>', 'class="btn btn-xs btn-primary" data-placement="top" title="Edit"').' 
+		               		'.anchor('perolehan_dana/delete/'.$d, '<i class="fa fa-times fa fa-white"></i>', 'class="btn btn-xs btn-danger" data-placement="top" title="Delete"');
+		            }
+		        )
+		    );
+
+			$sql_details = array(
+				'user' => $this->db->username,
+				'pass' => $this->db->password,
+				'db'   => $this->db->database,
+				'host' => $this->db->hostname
+		    );
+
+		    echo json_encode(
+		     	SSP::simple($_GET, $sql_details, $table, $primaryKey, $columns)
+		     );
+
+		}
+
+		function index()
+		{
+			$this->template->load('template', 'perolehan_dana/view');
+		}
+
+		function add()
+		{
+
+			if (isset($_POST['submit'])) {
+				$this->model_perolehan_dana->save();
+				redirect('perolehan_dana');
+		}
+			$get_prov = $this->db->select('*')->from('tbl_sumber_dana')->get();
+
+			$data['provinsi'] = $get_prov->result();
+   			$data['path'] = base_url('assets');
+
+        	$this->template->load('template', 'perolehan_dana/add', $data);
+    	}
+
+		function edit()
+		{
+			if (isset($_POST['submit'])) {
+				$this->model_perolehan_dana->update();
+				redirect('perolehan_dana');
+			} else {
+				$id_per_dana 	  = $this->uri->segment(3);
+				$data['data_perolehan_dana'] = $this->db->get_where('tbl_perolehan_dana', array('id' => $id_per_dana))->row_array();
+
+
+				$get_prov = $this->db->select('*')->from('tbl_sumber_dana')->get();
+
+
+				$data['provinsi'] = $get_prov->result();
+   				$data['path'] = base_url('assets');
+				$this->template->load('template', 'perolehan_dana/edit', $data);
+			}
+		}
+
+		function delete()
+		{
+			$id_per_dana = $this->uri->segment(3);
+			if (!empty($id_per_dana)) {
+				$this->db->where('id', $id_per_dana);
+				$this->db->delete('tbl_perolehan_dana');
+			}
+			redirect('perolehan_dana');
+		}
+
+		function add_ajax($add)
+		{
+        	$query = $this->db->get_where('tbl_jenis_dana',array('id_sumber_dana'=>$add));
+    		$data = "<option value=''>Pilih Jenis Dana</option>";
+    		foreach ($query->result() as $value) {
+        	$data .= "<option value='".$value->id_jenis_dana."'>".$value->jenis_dana."</option>";
+    	}
+    		echo $data;
+    	}
+
+		
+}
+
+?>
